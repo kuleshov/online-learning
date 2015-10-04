@@ -3,7 +3,7 @@
 
 import numpy as np
 from matplotlib import pyplot as plt
-from external.forecasters import EWAForecaster
+from forecasters.external import EWAForecaster
 
 # We sample y from Bernoulli(p)
 # Expert 1 predicts p - d1 + e

@@ -3,7 +3,7 @@
 
 import numpy as np
 from matplotlib import pyplot as plt
-from external.forecasters import EWAForecaster
+from forecasters.external import EWAForecaster
 
 # this reproduces example 4.1 from Cesa-Bianchi and Lugosi
 

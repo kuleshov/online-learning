@@ -4,17 +4,7 @@
 import numpy as np
 from scipy.misc import logsumexp
 
-class Forecaster(object):
-  """Base forecaster class"""
-  def __init__(self, N):
-    super(Forecaster, self).__init__()
-    self.N = N
-  
-  def predict(e):
-    raise NotImplementedError("Function must be extended by child class")
-
-  def observe(l):
-    raise NotImplementedError("Function must be extended by child class")
+from forecaster import Forecaster
 
 class EWAForecaster(Forecaster):
   """Exponentialy weighted average forecaster"""
