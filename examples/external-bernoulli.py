@@ -45,12 +45,6 @@ for t in xrange(T):
   Y[t] = y_t
 
   e_losses[t,:] = loss(e_t, 3*[y_t])
-  # print t, y_t
-  # print e_t
-  # print e_losses[t,:]
-  # print np.sum(e_losses[:t,:], axis=0) / t
-  # print np.sum(np.sqrt((Y[:t] - e_pred[:t,0])**2) / t)
-  # print
   F_losses[t] = loss(p_t, y_t)
 
   F.observe(e_losses[t,:])
@@ -61,5 +55,5 @@ for i in xrange(N):
   plt.plot(range(T), cum_loss)
 cum_loss = np.array([1/float(t+1) for t in xrange(T)]) * np.cumsum(F_losses)
 plt.plot(range(T), cum_loss, color='black')
-plt.legend(['1', '2', '3', '4'])
+plt.legend(['1', '2', '3', 'F'])
 plt.show()

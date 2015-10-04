@@ -25,3 +25,8 @@ class EWAForecaster(Forecaster):
     log_w_new = log_w_new - logsumexp(log_w_new)
     self.w = np.exp(log_w_new)
     assert self.w.shape == (self.N,)
+
+  @property
+  def weights(self):
+      return self.w
+  
