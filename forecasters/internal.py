@@ -58,6 +58,7 @@ class EWAInternalForecaster(Forecaster):
     assert len(fixed_pts) == 1
 
     self.w = np.abs(fixed_pts[0].reshape(N,1))
+    self.w /= np.sum(self.w)
 
   @property
   def weights(self):
