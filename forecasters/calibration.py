@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from scipy.misc import logsumexp
 
 from forecaster import Forecaster
 from internal import EWAInternalForecaster

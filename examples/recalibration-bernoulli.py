@@ -3,19 +3,19 @@
 
 import numpy as np
 from matplotlib import pyplot as plt
-from forecasters.calibration import EWACalibratedForecaster, \
-                                    calib_loss
+from forecasters.recalibration import EWARecalibratedForecaster
+from forecasters.calibration import calib_loss
 
 # We sample y from Bernoulli(p)
 
 # parameters
-p = 1.0
-T = 1000
+p = 0.8
+T = 10000
 N = 20
 
 # construct forecaster
 eta = np.sqrt(2*np.log(N)/T)
-F = EWACalibratedForecaster(N, eta)
+F = EWARecalibratedForecaster(N, eta)
 
 # we use the L2 loss
 def loss(p, y):
@@ -27,9 +27,13 @@ Y = np.zeros(T,)
 P = np.zeros(T,)
 P_exp = np.zeros(T,)
 for t in xrange(T):
-  P[t] = F.predict()
   Y[t] = np.random.binomial(1, p)
-  P_exp[t] = F.expected_prediction()
+  if Y[t] == 1:
+    p_raw = 0.7
+  else:
+    p_raw = 0.4
+  P[t] = F.predict(p_raw)
+  P_exp[t] = F.expected_prediction(p_raw)
 
   F_losses[t] = loss(P[t], Y[t])
 
@@ -45,6 +49,5 @@ plt.plot(range(T), cum_losses)
 plt.subplot(212)
 cum_cal_loss = np.array([calib_loss(Y[:t], P[:t], N) for t in xrange(T)])
 plt.plot(range(T), cum_cal_loss, color='black')
-
 
 plt.show()
