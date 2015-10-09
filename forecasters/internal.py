@@ -9,7 +9,7 @@ from external import EWAForecaster
 
 class EWAInternalForecaster(Forecaster):
   """Minimizes internal regret via reduction to external regret"""
-  def __init__(self, N, eta, w0=None):
+  def __init__(self, N, eta=None, w0=None):
     super(EWAInternalForecaster, self).__init__(N)
     self.F_ext = EWAForecaster(N*(N-1), eta)
     if w0:
@@ -54,8 +54,10 @@ class EWAInternalForecaster(Forecaster):
       Psum += d*P
 
     lam, Q = np.linalg.eig(Psum)
-    fixed_pts = [Q[:,i] for i in xrange(N) if np.abs(lam[i]-1) < 1e-3]
-    assert len(fixed_pts) == 1
+    fixed_pts = [Q[:,i] for i in xrange(N) if np.abs(lam[i]-1) < 1e-5]
+    if len(fixed_pts) != 1:
+      print len(fixed_pts)
+      assert len(fixed_pts) == 1
 
     self.w = np.abs(fixed_pts[0].reshape(N,1))
     self.w /= np.sum(self.w)

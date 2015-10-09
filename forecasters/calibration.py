@@ -8,10 +8,11 @@ from internal import EWAInternalForecaster
 
 class EWACalibratedForecaster(Forecaster):
   """Produces calibrated estimates by minimizng internal regret"""
-  def __init__(self, N, eta):
+  def __init__(self, N, eta=None):
     super(EWACalibratedForecaster, self).__init__(N+1)
     self.F_int = EWAInternalForecaster(N+1, eta)
     self.e = np.array([float(i)/N for i in xrange(N+1)])
+    self.examples_seen = 0
 
   def predict(self):
     w = self.F_int.weights.reshape(self.N,)
@@ -23,8 +24,9 @@ class EWACalibratedForecaster(Forecaster):
     return w.T.dot(self.e)
 
   def observe(self, y_t):
-    l = np.array([y_t - e for e in self.e])
+    l = np.array([(y_t - e)**2 for e in self.e])
     self.F_int.observe(l)
+    self.examples_seen += 1
 
   @property
   def weights(self):
