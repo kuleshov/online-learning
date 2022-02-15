@@ -32,6 +32,26 @@ class EWACalibratedForecaster(Forecaster):
   def weights(self):
     return self.F_int.weights
 
+class RunningAverageForecaster(Forecaster):
+  """Baseline producing estimates by taking the average of inputs"""
+  def __init__(self, N):
+    super(RunningAverageForecaster, self).__init__(N+1)
+    self.input_history = []
+    self.examples_seen = 0
+
+  def predict(self):
+    if not self.input_history:
+      return 0.0
+    else:
+      return np.mean(np.array(self.input_history))
+
+  def expected_prediction(self):
+    return self.predict()
+
+  def observe(self, y_t):
+    self.input_history.append(y_t)
+    self.examples_seen += 1
+
 # ----------------------------------------------------------------------------
 # Helpers
 
@@ -56,8 +76,8 @@ def quantile_calib_loss(P, N):
 
   for i in range(N+1):
     p = float(i)/N
-    w_i = np.sum([1 for p_t in P if p_t <= p])
+    # w_i = np.sum([1 for p_t in P if p_t <= p])
     p_hat = np.sum([1 for p_t in P if p_t <= p]) / T
-    loss += w_i * (p_hat-p)**2
+    loss += (p_hat-p)**2
 
   return loss
