@@ -27,7 +27,7 @@ class EWAForecaster(Forecaster):
     else:
       eta_t = 3*np.sqrt(2*np.log(self.N)/self.t)
 
-    log_w = np.log(self.w)
+    log_w = np.log(self.w + 1e-6)
     log_w_new = log_w - eta_t * l
     log_w_new = log_w_new - logsumexp(log_w_new)
     self.w = np.exp(log_w_new)
