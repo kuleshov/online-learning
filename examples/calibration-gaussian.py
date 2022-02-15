@@ -25,6 +25,8 @@ mu_raw, sigma_raw = 0.0, 2.0 # to generate uncalibrated forecasts
 # eta = np.sqrt(2*np.log(N)/T) # this the theoretical learning rate
 eta = 5 # this a practical effective learning rate
 R = EWARecalibratedRegressionForecaster(N, eta)
+# below is baseline that implements counting means in each of N bins
+# R = MeanRecalibratedRegressionForecaster(N)
 
 # we use the CRPS loss
 # the CRPS loss works by discretizing the integral at y_vals
