@@ -4,7 +4,7 @@
 import numpy as np
 
 from forecaster import Forecaster
-from calibration import EWACalibratedForecaster
+from calibration import EWACalibratedForecaster, RunningAverageForecaster
 
 class EWARecalibratedForecaster(Forecaster):
   """Recalibrates online probability estimates"""
@@ -40,3 +40,13 @@ class EWARecalibratedForecaster(Forecaster):
   def examples_seen(self):
       return [F.examples_seen for F in self.F_cal]
       
+
+class EWARecalibratedRegressionForecaster(EWARecalibratedForecaster):
+  def __init__(self, N, eta=None):
+    super(EWARecalibratedRegressionForecaster, self).__init__(N, eta)
+    # self.F_cal = [RunningAverageForecaster(N) for i in range(N)]
+
+  def observe(self, y_t, p_raw):
+    for i in range(len(self.F_cal)):
+      o_t = 1 if p_raw <= (float(i) / self.N) else 0
+      self.F_cal[i].observe(o_t) 
