@@ -4,20 +4,29 @@
 import numpy as np
 from scipy.special import erf, erfinv
 from matplotlib import pyplot as plt
-from forecasters.recalibration import (
-  EWARecalibratedForecaster, EWARecalibratedRegressionForecaster
-)
+from forecasters.recalibration import EWARecalibratedRegressionForecaster
 from forecasters.calibration import quantile_calib_loss
 
-# We sample y from Bernoulli(p)
+# We sample y from a Gaussian(mu, sigma)
 
 # parameters
-mu, sigma = 0.0, 1.0
-T = 1500
-N = 20
-cal_eval_levels = [0.2, 0.4, 0.5, 0.6, 0.8]
+mu, sigma = 0.0, 1.0 # distribution over y
+T = 100 # number of time steps of online learning
+N = 20 # recalibrator discretizes probs into N intervals; best perf is 1/N
+cal_eval_levels = [0.2, 0.4, 0.5, 0.6, 0.8] # measure calibration at these
+
+
+# set up experiment
+mu_raw, sigma_raw = 0.0, 2.0 # to generate uncalibrated forecasts
+
+# construct the recalibrator
+# eta = np.sqrt(2*np.log(N)/T) # this the theoretical learning rate
+eta = 5 # this a practical effective learning rate
+R = EWARecalibratedRegressionForecaster(N, eta)
 
 # we use the CRPS loss
+# the CRPS loss works by discretizing the integral at y_vals
+# and using Riemann sum approximation
 def crps_loss(p_vals, y_vals, y_target):
   n_vals = len(y_vals)
   crps_vals = (p_vals-np.array(y_vals >= y_target, dtype=np.int))**2
@@ -25,14 +34,8 @@ def crps_loss(p_vals, y_vals, y_target):
   return np.sum(crps_vals[:n_vals-1] * delta_vals)
 
 # helpers for CRPS loss
-mu_raw, sigma_raw = 0.0, 2.0 # uncalibrated forecast
-y_vals = np.arange(-2.0, 2.0, 0.05)
+y_vals = np.arange(-2.0, 2.0, 0.05) # for CRPS integral approximation
 p_raw_vals = [0.5*(1 + erf((y-mu_raw)/(sigma_raw*np.sqrt(2)))) for y in y_vals]
-
-# construct forecaster
-# eta = np.sqrt(2*np.log(N)/T) # this the theoretical learning rate
-eta = 5 # this the practical effective learning rate
-F = EWARecalibratedRegressionForecaster(N, eta)
 
 # run experiment
 F_losses = np.zeros(T,)
@@ -41,38 +44,57 @@ P = np.zeros(T,)
 P_exp = np.zeros(T,)
 P_raw = np.zeros(T,)
 for t in range(T):
-  if t % 100 == 0: print(t)
-  Y[t] = np.random.normal(mu, sigma)
-  P_raw[t] = 0.5*(1 + erf((Y[t]-mu_raw)/(sigma_raw*np.sqrt(2))))
-  P[t] = F.predict(P_raw[t])
-  P_exp[t] = F.expected_prediction(P_raw[t])
+  if t % 100 == 0: print('Time: %05d/%05d' % (t, T))
+  Y[t] = np.random.normal(mu, sigma) # sample Y from true distribution
+  P_raw[t] = 0.5*(1 + erf((Y[t]-mu_raw)/(sigma_raw*np.sqrt(2)))) #uncalib fcst
+  P[t] = R.predict(P_raw[t]) # theoretically justified recalibration
+  P_exp[t] = R.expected_prediction(P_raw[t]) # no theory; better in practice
 
-  print('Y[t]', Y[t])
-  print('P_raw[t]', P_raw[t])
-  print('idx[t]', F._get_idx(P_raw[t]))
-  print('P_t[t]', P[t])
-  print('P_exp[t]', P_exp[t])
-  print('P_correct[t]',0.5*(1 + erf((Y[t]-mu)/(sigma*np.sqrt(2)))))
-  print()
+  # may be useful for debugging:
+  # print('Y[t]', Y[t])
+  # print('P_raw[t]', P_raw[t])
+  # print('idx[t]', R._get_idx(P_raw[t]))
+  # print('P_t[t]', P[t])
+  # print('P_exp[t]', P_exp[t])
+  # print('P_correct[t]',0.5*(1 + erf((Y[t]-mu)/(sigma*np.sqrt(2)))))
+  # print()
 
   # compute crps loss
-  # p_vals = np.array([F.predict(p_raw_val) for p_raw_val in p_raw_vals])
-  p_vals = np.array([F.expected_prediction(p_raw_val) for p_raw_val in p_raw_vals])
+  # p_vals = np.array([R.predict(p_raw_val) for p_raw_val in p_raw_vals])
+  p_vals = np.array([
+    R.expected_prediction(p_raw_val) for p_raw_val in p_raw_vals
+  ])
   F_losses[t] = crps_loss(p_vals, y_vals, Y[t])
 
-  F.observe(Y[t], P_raw[t])
+  # pass observed outcome to recalibrator
+  R.observe(Y[t], P_raw[t])
 
-print('test0')
 # plot the expected loss:
+print('Plotting CRPS loss over time')
 plt.subplot(211)
 cum_losses = np.array([1/float(t+1) for t in range(T)]) * np.cumsum(F_losses)
 plt.plot(range(T), cum_losses)
-print('test1')
+plt.xlabel('Time steps')
+plt.ylabel('CRPS')
 
 # plot calibration
+print('Plotting calibration loss over time')
 plt.subplot(212)
-cum_cal_loss = np.array([quantile_calib_loss(P[:t], cal_eval_levels) for t in range(T)])
-plt.plot(range(5,T), cum_cal_loss[5:], color='black')
+cum_cal_loss = np.array([
+  quantile_calib_loss(P[:t], cal_eval_levels) for t in range(T)
+])
+plt.plot(range(5,T), cum_cal_loss[5:], color='black') # skip first 5 t
+plt.xlabel('Time steps')
+plt.ylabel('Calibration Error')
+
+# this shows the p_raw -> p mapping of R(p_raw)
+print('Recalibration Plot (raw, recalibrated, ideal):')
+for i in range(1,10):
+    p_raw = float(i)/10.
+    y_raw = mu_raw + sigma_raw * np.sqrt(2) * erfinv(2*p_raw-1)
+    p_true = 0.5*(1 + erf((y_raw-mu)/(sigma*np.sqrt(2))))
+    p_pred = R.F_cal[R._get_idx(p_raw)+1].predict()
+    print('%.4f, %.4f, %.4f' % (p_raw, p_pred, p_true))
 
 print('Calibration Stats (Raw):')
 cal_loss = 0
@@ -89,33 +111,27 @@ for p in cal_eval_levels:
     w_hat = np.sum([1 for p_t in P if p_t <= p])
     cal_loss += (p_hat - p)**2
     print(p, p_hat)
-print('Loss: %f %f %f\n' % (cal_loss, quantile_calib_loss(P, cal_eval_levels), cum_cal_loss[-1])) 
+print('Loss: %f %f %f\n' % (
+  cal_loss, quantile_calib_loss(P, cal_eval_levels), cum_cal_loss[-1]
+)) 
 
 print('Calibration Stats (Recalibrated-Exp):')
 cal_loss = 0
 for p in cal_eval_levels:
     p_hat = np.sum([1 for p_t in P_exp if p_t <= p]) / T
     cal_loss += (p_hat - p)**2
-    print(p, p_hat) # F.F_cal[F._get_idx(p)+1].predict(), F.F_cal[F._get_idx(p)+1].input_history)
+    print(p, p_hat) 
 print('Loss: %f\n' % cal_loss) 
-
-print('Recalibration Plot:')
-for i in range(1,10):
-    p_raw = float(i)/10.
-    y_raw = mu_raw + sigma_raw * np.sqrt(2) * erfinv(2*p_raw-1)
-    p_true = 0.5*(1 + erf((y_raw-mu)/(sigma*np.sqrt(2))))
-    p_pred = F.F_cal[F._get_idx(p_raw)+1].predict()
-    print(p_raw, p_pred, p_true)
 
 # print('CRPS Analysis:')
 # # compute crps loss
-# p_vals = np.array([np.mean(np.array([F.expected_prediction(p_raw_val) for _ in range(1000)]))
+# p_vals = np.array([np.mean(np.array([R.expected_prediction(p_raw_val) for _ in range(1000)]))
 #   for p_raw_val in p_raw_vals])
 # y_target = Y[t]
 # n_vals = len(y_vals)
 # crps_vals = (p_vals-np.array(y_vals >= y_target, dtype=np.int))**2
 # delta_vals = np.array([y_vals[i+1] - y_vals[i] for i in range(n_vals-1)])
-# print([(i, f.examples_seen) for i, f in enumerate(F.F_cal)])
+# print([(i, f.examples_seen) for i, f in enumerate(R.F_cal)])
 # print(y_vals)
 # print(p_raw_vals)
 # print(p_vals)
