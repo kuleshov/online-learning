@@ -13,7 +13,7 @@ from forecasters.calibration import quantile_calib_loss, pit_calib_loss
 
 # parameters
 mu, sigma = 0.0, 1.0 # distribution over y
-T = 500 # number of time steps of online learning
+T = 200 # number of time steps of online learning
 N = 20 # recalibrator discretizes probs into N intervals; best perf is 1/N
 cal_eval_levels = [0.2, 0.4, 0.5, 0.6, 0.8] # measure calibration at these
 
@@ -91,6 +91,14 @@ plt.plot(range(5,T), cum_cal_loss[5:], color='black') # skip first 5 t
 plt.xlabel('Time steps')
 plt.ylabel('Calibration Error')
 
+# save the figures
+# plt.show()
+plt.savefig('calibration-gaussian.png')
+
+# we are mostly done with the code at this point
+# next, we are just going to print out some stats
+# these are useful for debugging
+
 # this shows the p_raw -> p mapping of R(p_raw)
 print('Recalibration Plot (raw, recalibrated, ideal):')
 for i in range(1,10):
@@ -99,6 +107,7 @@ for i in range(1,10):
     p_true = 0.5*(1 + erf((y_raw-mu)/(sigma*np.sqrt(2))))
     p_pred = R.F_cal[R._get_idx(p_raw)+1].predict()
     print('%.4f, %.4f, %.4f' % (p_raw, p_pred, p_true))
+print()
 
 print('Calibration Stats (Raw):')
 cal_loss = 0
@@ -127,6 +136,46 @@ for p in cal_eval_levels:
     print(p, p_hat) 
 print('Loss: %f\n' % cal_loss) 
 
+
+# add 0.0 and 1.0 to levels
+levels = cal_eval_levels.copy()
+if 0.0 not in levels: levels.append(0.0)
+if 1.0 not in levels: levels.append(1.0)
+levels = list(sorted(levels))
+
+print('PIT Calibration Stats (Raw):')
+loss = 0
+for i in range(len(levels)-1):
+  p1 = levels[i+1]
+  p0 = levels[i]
+  p_hat = np.sum([1 for p_t in P_raw if p0 <= p_t < p1]) / T
+  p_exp = p1 - p0
+  loss += (p_hat-p_exp)**2
+  print(p0, p1, p_hat)
+print('Loss: %f\n' % loss)   
+
+print('PIT Calibration Stats (Recalibrated):')
+loss = 0
+for i in range(len(levels)-1):
+  p1 = levels[i+1]
+  p0 = levels[i]
+  p_hat = np.sum([1 for p_t in P if p0 <= p_t < p1]) / T
+  p_exp = p1 - p0
+  loss += (p_hat-p_exp)**2
+  print(p0, p1, p_hat)  
+print('Loss: %f\n' % loss)  
+
+print('PIT Calibration Stats (Recalibrated-Exp):')
+loss = 0
+for i in range(len(levels)-1):
+  p1 = levels[i+1]
+  p0 = levels[i]
+  p_hat = np.sum([1 for p_t in P_exp if p0 <= p_t < p1]) / T
+  p_exp = p1 - p0
+  loss += (p_hat-p_exp)**2
+  print(p0, p1, p_hat)  
+print('Loss: %f\n' % loss)     
+
 # print('CRPS Analysis:')
 # # compute crps loss
 # p_vals = np.array([np.mean(np.array([R.expected_prediction(p_raw_val) for _ in range(1000)]))
@@ -143,5 +192,3 @@ print('Loss: %f\n' % cal_loss)
 # print(crps_vals)
 # print(delta_vals)
 
-# plt.show()
-plt.savefig('calibration-gaussian.png')
