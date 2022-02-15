@@ -70,6 +70,7 @@ def calib_loss(Y, P, N):
   return loss / T
 
 def quantile_calib_loss(P, levels=[0.2, 0.4, 0.5, 0.6, 0.8]):
+  """Calibration loss as in Kuleshov at al. ICML18"""
   loss = 0.0
   T = len(P)
   if T == 0: return 0
@@ -78,5 +79,25 @@ def quantile_calib_loss(P, levels=[0.2, 0.4, 0.5, 0.6, 0.8]):
     # w_i = np.sum([1 for p_t in P if p_t <= p])
     p_hat = np.sum([1 for p_t in P if p_t <= p]) / T
     loss += (p_hat-p)**2
+
+  return loss
+
+def pit_calib_loss(P, levels=[0.2, 0.4, 0.5, 0.6, 0.8]):
+  """Calibration loss based on probability integral transform (PIT)"""
+  loss = 0.0
+  T = len(P)
+  if T == 0: return 0
+
+  # add 0.0 and 1.0 to levels
+  if 0.0 not in levels: levels.append(0.0)
+  if 1.0 not in levels: levels.append(1.0)
+  levels = list(sorted(levels))
+
+  for i in range(len(levels)-1):
+    p1 = levels[i+1]
+    p0 = levels[i]
+    p_hat = np.sum([1 for p_t in P if p0 <= p_t < p1]) / T
+    p_exp = p1 - p0
+    loss += (p_hat-p_exp)**2
 
   return loss

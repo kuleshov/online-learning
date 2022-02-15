@@ -4,8 +4,10 @@
 import numpy as np
 from scipy.special import erf, erfinv
 from matplotlib import pyplot as plt
-from forecasters.recalibration import EWARecalibratedRegressionForecaster
-from forecasters.calibration import quantile_calib_loss
+from forecasters.recalibration import (
+  EWARecalibratedRegressionForecaster, MeanRecalibratedRegressionForecaster
+)
+from forecasters.calibration import quantile_calib_loss, pit_calib_loss
 
 # We sample y from a Gaussian(mu, sigma)
 
@@ -81,7 +83,7 @@ plt.ylabel('CRPS')
 print('Plotting calibration loss over time')
 plt.subplot(212)
 cum_cal_loss = np.array([
-  quantile_calib_loss(P_exp[:t], cal_eval_levels) for t in range(T)
+  pit_calib_loss(P_exp[:t], cal_eval_levels) for t in range(T)
 ])
 plt.plot(range(5,T), cum_cal_loss[5:], color='black') # skip first 5 t
 plt.xlabel('Time steps')
