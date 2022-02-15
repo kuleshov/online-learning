@@ -11,7 +11,7 @@ from forecasters.calibration import quantile_calib_loss
 
 # parameters
 mu, sigma = 0.0, 1.0 # distribution over y
-T = 100 # number of time steps of online learning
+T = 500 # number of time steps of online learning
 N = 20 # recalibrator discretizes probs into N intervals; best perf is 1/N
 cal_eval_levels = [0.2, 0.4, 0.5, 0.6, 0.8] # measure calibration at these
 
@@ -81,7 +81,7 @@ plt.ylabel('CRPS')
 print('Plotting calibration loss over time')
 plt.subplot(212)
 cum_cal_loss = np.array([
-  quantile_calib_loss(P[:t], cal_eval_levels) for t in range(T)
+  quantile_calib_loss(P_exp[:t], cal_eval_levels) for t in range(T)
 ])
 plt.plot(range(5,T), cum_cal_loss[5:], color='black') # skip first 5 t
 plt.xlabel('Time steps')
