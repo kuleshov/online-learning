@@ -69,13 +69,12 @@ def calib_loss(Y, P, N):
 
   return loss / T
 
-def quantile_calib_loss(P, N):
+def quantile_calib_loss(P, levels=[0.2, 0.4, 0.5, 0.6, 0.8]):
   loss = 0.0
   T = len(P)
   if T == 0: return 0
 
-  for i in range(N+1):
-    p = float(i)/N
+  for p in levels:
     # w_i = np.sum([1 for p_t in P if p_t <= p])
     p_hat = np.sum([1 for p_t in P if p_t <= p]) / T
     loss += (p_hat-p)**2

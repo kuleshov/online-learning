@@ -13,8 +13,9 @@ from forecasters.calibration import quantile_calib_loss
 
 # parameters
 mu, sigma = 0.0, 1.0
-T = 400
-N = 40
+T = 1500
+N = 20
+cal_eval_levels = [0.2, 0.4, 0.5, 0.6, 0.8]
 
 # we use the CRPS loss
 def crps_loss(p_vals, y_vals, y_target):
@@ -29,8 +30,8 @@ y_vals = np.arange(-2.0, 2.0, 0.05)
 p_raw_vals = [0.5*(1 + erf((y-mu_raw)/(sigma_raw*np.sqrt(2)))) for y in y_vals]
 
 # construct forecaster
-# eta = np.sqrt(2*np.log(N)/T)
-eta = 5
+# eta = np.sqrt(2*np.log(N)/T) # this the theoretical learning rate
+eta = 5 # this the practical effective learning rate
 F = EWARecalibratedRegressionForecaster(N, eta)
 
 # run experiment
@@ -70,13 +71,12 @@ print('test1')
 
 # plot calibration
 plt.subplot(212)
-cum_cal_loss = np.array([quantile_calib_loss(P[:t], 10) for t in range(T)])
+cum_cal_loss = np.array([quantile_calib_loss(P[:t], cal_eval_levels) for t in range(T)])
 plt.plot(range(5,T), cum_cal_loss[5:], color='black')
 
 print('Calibration Stats (Raw):')
 cal_loss = 0
-for i in range(1,10):
-    p = float(i)/10.
+for p in cal_eval_levels:
     p_hat = np.sum([1 for p_t in P_raw if p_t <= p]) / T
     cal_loss += (p_hat - p)**2
     print(p, p_hat)
@@ -84,18 +84,16 @@ print('Loss: %f\n' % cal_loss)
 
 print('Calibration Stats (Recalibrated):')
 cal_loss = 0
-for i in range(1,10):
-    p = float(i)/10.
+for p in cal_eval_levels:
     p_hat = np.sum([1 for p_t in P if p_t <= p]) / T
     w_hat = np.sum([1 for p_t in P if p_t <= p])
     cal_loss += (p_hat - p)**2
     print(p, p_hat)
-print('Loss: %f %f %f\n' % (cal_loss, quantile_calib_loss(P, 10), cum_cal_loss[-1])) 
+print('Loss: %f %f %f\n' % (cal_loss, quantile_calib_loss(P, cal_eval_levels), cum_cal_loss[-1])) 
 
 print('Calibration Stats (Recalibrated-Exp):')
 cal_loss = 0
-for i in range(1,10):
-    p = float(i)/10.
+for p in cal_eval_levels:
     p_hat = np.sum([1 for p_t in P_exp if p_t <= p]) / T
     cal_loss += (p_hat - p)**2
     print(p, p_hat) # F.F_cal[F._get_idx(p)+1].predict(), F.F_cal[F._get_idx(p)+1].input_history)
