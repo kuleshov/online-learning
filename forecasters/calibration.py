@@ -11,7 +11,7 @@ class EWACalibratedForecaster(Forecaster):
   def __init__(self, N, eta=None):
     super(EWACalibratedForecaster, self).__init__(N+1)
     self.F_int = EWAInternalForecaster(N+1, eta)
-    self.e = np.array([float(i)/N for i in xrange(N+1)])
+    self.e = np.array([float(i)/N for i in range(N+1)])
     self.examples_seen = 0
 
   def predict(self):
@@ -40,7 +40,7 @@ def calib_loss(Y, P, N):
   T = len(Y)
   if T == 0: return 0
 
-  for i in xrange(N+1):
+  for i in range(N+1):
     p = float(i)/N
     w_i = np.sum([p_t for p_t in P if p_t == p])
     y_i = np.sum([p_t*y_t for p_t, y_t in zip(P,Y) if p_t == p])
@@ -48,3 +48,16 @@ def calib_loss(Y, P, N):
     loss += w_i*(rho_i-p)**2
 
   return loss / T
+
+def quantile_calib_loss(P, N):
+  loss = 0.0
+  T = len(P)
+  if T == 0: return 0
+
+  for i in range(N+1):
+    p = float(i)/N
+    w_i = np.sum([1 for p_t in P if p_t <= p])
+    p_hat = np.sum([1 for p_t in P if p_t <= p]) / T
+    loss += w_i * (p_hat-p)**2
+
+  return loss
