@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from scipy.misc import logsumexp
+from scipy.special import logsumexp
 
 from forecaster import Forecaster
 from external import EWAForecaster
@@ -54,9 +54,9 @@ class EWAInternalForecaster(Forecaster):
       Psum += d*P
 
     lam, Q = np.linalg.eig(Psum)
-    fixed_pts = [Q[:,i] for i in xrange(N) if np.abs(lam[i]-1) < 1e-5]
+    fixed_pts = [Q[:,i] for i in range(N) if np.abs(lam[i]-1) < 1e-5]
     if len(fixed_pts) != 1:
-      print len(fixed_pts)
+      print(len(fixed_pts))
       assert len(fixed_pts) == 1
 
     self.w = np.abs(fixed_pts[0].reshape(N,1))
@@ -68,4 +68,4 @@ class EWAInternalForecaster(Forecaster):
   
 
   def _get_ij_ind(self):
-    return ((i,j) for i in xrange(self.N) for j in xrange(self.N) if i != j)
+    return ((i,j) for i in range(self.N) for j in range(self.N) if i != j)

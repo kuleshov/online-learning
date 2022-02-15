@@ -26,7 +26,7 @@ F_losses = np.zeros(T,)
 Y = np.zeros(T,)
 P = np.zeros(T,)
 P_exp = np.zeros(T,)
-for t in xrange(T):
+for t in range(T):
   P[t] = F.predict()
   Y[t] = np.random.binomial(1, p)
   P_exp[t] = F.expected_prediction()
@@ -37,14 +37,15 @@ for t in xrange(T):
 
 # plot the expected loss:
 plt.subplot(211)
-losses = np.array([(Y[t] - P_exp[t])**2 for t in xrange(T)])
-cum_losses = np.array([1/float(t+1) for t in xrange(T)]) * np.cumsum(losses)
+losses = np.array([(Y[t] - P_exp[t])**2 for t in range(T)])
+cum_losses = np.array([1/float(t+1) for t in range(T)]) * np.cumsum(losses)
 plt.plot(range(T), cum_losses)
 
 # plot calibration
 plt.subplot(212)
-cum_cal_loss = np.array([calib_loss(Y[:t], P[:t], N) for t in xrange(T)])
+cum_cal_loss = np.array([calib_loss(Y[:t], P[:t], N) for t in range(T)])
 plt.plot(range(T), cum_cal_loss, color='black')
 
 
-plt.show()
+# plt.show()
+plt.savefig('calibration-bernoulli.png')

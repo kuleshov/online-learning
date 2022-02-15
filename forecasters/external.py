@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from scipy.misc import logsumexp
+from scipy.special import logsumexp
 
 from forecaster import Forecaster
 
